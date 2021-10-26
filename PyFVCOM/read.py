@@ -10,12 +10,14 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from shapely.geometry import Polygon, Point
+
 import matplotlib.path as mpath
 import numpy as np
-import pandas as pd
+#import pandas as pd
 from netCDF4 import Dataset, MFDataset, num2date, date2num
 
-from PyFVCOM.grid import Domain, control_volumes, get_area_heron
+from PyFVCOM.grid import Domain, control_volumes, get_area_heron,get_boundary_polygons
 from PyFVCOM.grid import unstructured_grid_volume, elems2nodes, GridReaderNetCDF
 from PyFVCOM.utilities.general import PassiveStore, flatten_list, warn
 
@@ -326,7 +328,7 @@ class _AttributeReader(object):
         self._ds.close()
         delattr(self, '_ds')
 
-    def get_attribute(self, variable):
+    def get_attribute(self, variable, rename_var=None, return_dict=False):
         """
         Get the attributes for the given variable and add them to the relevant object.
 
@@ -336,24 +338,34 @@ class _AttributeReader(object):
             The variable from which to extract the attributes.
 
         """
-
         # We need to reopen the Dataset to support pickling FileReader objects.
         close_on_finish = False
         if not hasattr(self, '_ds'):
             close_on_finish = True
             self._ds = Dataset(self._filename, 'r')
+    
+        if rename_var is None:
+            rename_var = variable
 
-        if not hasattr(self, variable):
+        if return_dict:
+            out_dict = {}
+
+        if not hasattr(self, rename_var):
             # Hmmm, don't like using PassiveStore here...
-            setattr(self, variable, PassiveStore())
+            setattr(self, rename_var, PassiveStore())
 
         for attribute in self._ds.variables[variable].ncattrs():
-            setattr(getattr(self, variable), attribute, getattr(self._ds.variables[variable], attribute))
+            setattr(getattr(self, rename_var), attribute, getattr(self._ds.variables[variable], attribute))
+            if return_dict:
+                out_dict[attribute] = getattr(self._ds.variables[variable], attribute)
 
         if close_on_finish:
             self._ds.close()
             delattr(self, '_ds')
 
+        if return_dict:
+            return out_dict
+    
     def __iter__(self):
         return (a for a in self.__dict__.keys() if not a.startswith('_'))
 
@@ -514,6 +526,7 @@ class FileReader(Domain):
         for dim in self._dims:
             # Skip the special 'wesn' key.
             if dim == 'wesn':
+                self._bounding_box = True
                 continue
             dim_is_iterable = hasattr(self._dims[dim], '__iter__')
             dim_is_string = isinstance(self._dims[dim], str)  # for date ranges
@@ -529,11 +542,9 @@ class FileReader(Domain):
 
         # Update the time dimension number we've read in the time data (in case we did so with a specified dimension
         # range).
-        try:
-            self.dims.time = len(self.time.time)
-        except TypeError:
-            self.dims.time = 1
+        self._update_time()
 
+        # Load the grid
         self._load_grid(fvcom)
 
         # Load the attributes of anything we've been asked to load.
@@ -1158,6 +1169,13 @@ class FileReader(Domain):
                     print('{} dimension size unchanged ({}).'.format(dim, getattr(self.dims, dim)))
             setattr(self.dims, dim, unique_dims[dim])
 
+    def _update_time(self):
+        # Update the dimension of the time based on the loaded values
+        try:
+            self.dims.time = len(self.time.time)
+        except TypeError:
+            self.dims.time = 1
+
     def load_data(self, var, dims=None):
         """
         Load a given variable(s).
@@ -1528,16 +1546,48 @@ class FileReader(Domain):
 
     def add_river_flow(self, river_nc_file, river_nml_file):
         """
-        TODO: docstring.
+        Read in the river forcing data.
+        The river forcing is in two files the netcdf with time varying flux,
+        temperature, salinity for each river node.
+        The nml text file contains information about which node the river is 
+        attached to.
+
+        Parameters
+        ----------
+        river_nc_file : str 
+            Path to the netcdf file.
+        river_nml_file : str
+            Path to the text nml file.
+
+        Returns
+        -------
+        Populates: 
+            self.river.time_dt
+            self.river.river_time_sec
+            self.river.river_nodes
+            self.river.river_lat
+            self.river.river_lon
+            self.river.river_fluxes
+            self.river.total_flux
+            self.river.river_temp
+            self.river.river_salt
+            self.river.raw_fluxes
+            self.river.raw_temp
+            self.river.raw_salt
 
         """
 
         nml_dict = get_river_config(river_nml_file)
-        river_node_raw = np.asarray(nml_dict['RIVER_GRID_LOCATION'], dtype=int) - 1
+        river_node_raw = np.asarray(nml_dict['RIVER_GRID_LOCATION'], dtype=int)
 
         river_nc = Dataset(river_nc_file, 'r')
         time_raw = river_nc.variables['Times'][:]
-        self.river.time_dt = [datetime.strptime(b''.join(this_time).decode('utf-8').rstrip(), '%Y/%m/%d %H:%M:%S') for this_time in time_raw]
+        
+        try:
+            self.river.time_dt = [datetime.strptime(b''.join(this_time).decode('utf-8').rstrip().replace('/', '').replace('-', '').replace('T', '').replace(' ', '').replace(':', '').replace('.', ''), '%Y%m%d%H%M%S%f') for this_time in time_raw]
+        except:
+            self.river.time_dt = [datetime.strptime(b''.join(this_time).decode('utf-8').rstrip().replace('/', '').replace('-', '').replace('T', '').replace(' ', '').replace(':', '').replace('.', ''), '%Y%m%d%H%M%S') for this_time in time_raw]
+
 
         ref_date = datetime(1900, 1, 1)
         mod_time_sec = [(this_dt - ref_date).total_seconds() for this_dt in self.time.datetime]
@@ -1553,12 +1603,18 @@ class FileReader(Domain):
         river_flux_raw = river_nc.variables['river_flux'][:, rivers_in_grid]
         self.river.river_fluxes = np.asarray([np.interp(mod_time_sec, self.river.river_time_sec, this_col) for this_col in river_flux_raw.T]).T
         self.river.total_flux = np.sum(self.river.river_fluxes, axis=1)
+        self.river.raw_fluxes = river_flux_raw
 
         river_temp_raw = river_nc.variables['river_temp'][:, rivers_in_grid]
         self.river.river_temp = np.asarray([np.interp(mod_time_sec, self.river.river_time_sec, this_col) for this_col in river_temp_raw.T]).T
+        self.river.raw_temp = river_temp_raw
 
         river_salt_raw = river_nc.variables['river_salt'][:, rivers_in_grid]
         self.river.river_salt = np.asarray([np.interp(mod_time_sec, self.river.river_time_sec, this_col) for this_col in river_salt_raw.T]).T
+        self.river.raw_sal = river_salt_raw
+
+        self.river.river_lat = self.grid.lat[self.river.river_nodes]
+        self.river.river_lon = self.grid.lon[self.river.river_nodes]
 
         river_nc.close()
 
@@ -1814,7 +1870,7 @@ class FileReader(Domain):
 
 def read_nesting_nodes(fvcom, nestpath):
     """
-    Function to read the indices of the nodes and elements in the nesting region.
+    Function to read the indices of the nodes and elements in the nesting region. It uses spherical coordinates only
 
     Parameters
     ----------
@@ -1822,6 +1878,8 @@ def read_nesting_nodes(fvcom, nestpath):
         FVCOM FileReader object with grid information.
     nestpath : str
         Full path to one nesting netCDF file for the domain.
+    threshold : np.array
+        distance threshold to mask only exact matches or near enough
 
     Returns
     -------
@@ -1836,13 +1894,32 @@ def read_nesting_nodes(fvcom, nestpath):
         lat = nest.variables['lat'][:]
         latc = nest.variables['latc'][:]
 
-    # Find the closest node to nesting node positions
-    nest_indices_n = fvcom.closest_node((lon, lat))
-    nest_indices_e = fvcom.closest_element((lonc, latc))
+    # create polygon of domain with coastline
+    poly_id = get_boundary_polygons(fvcom.grid.triangles)
+    # assuming coastline
+    polyshp = [Polygon(np.array((fvcom.grid.lon[i],fvcom.grid.lat[i])).T) for i in poly_id ]
+    polyarea = [i.area for i in polyshp]
+    domain = polyshp[polyarea.index(max(polyarea))]
+    indomain = []
+    for i in zip(lon,lat):
+        if domain.contains(Point(i)) or domain.intersects(Point(i)):
+            indomain.append(True)
+        else:
+            indomain.append(False)
+    indomainc=[]
+    for i in zip(lonc,latc):
+        if domain.contains(Point(i)) or domain.intersects(Point(i)):
+            indomainc.append(True)
+        else:
+            indomainc.append(False)
     mask_n = np.full(fvcom.dims.node, False)
     mask_e = np.full(fvcom.dims.nele, False)
-    mask_n[nest_indices_n] = True
-    mask_e[nest_indices_e] = True
+
+    if np.any(indomain):
+        nest_indices_n = fvcom.closest_node((lon[indomain], lat[indomain]))
+        nest_indices_e = fvcom.closest_element((lonc[indomainc], latc[indomainc]))
+        mask_n[nest_indices_n] = True
+        mask_e[nest_indices_e] = True
 
     return mask_n, mask_e
 
@@ -1871,8 +1948,8 @@ def apply_mask(fvcom, vars=[], mask_nodes=[], mask_elements=[], noisy=False):
 
     """
 
-    if not np.any(mask_nodes) and not np.any(mask_elements):
-        raise ValueError('Masks for nodes or elements not supplied')
+    # if not np.any(mask_nodes) and not np.any(mask_elements):
+    #     raise ValueError('Masks for nodes or elements not supplied')
     # Determine if we have been given a list of variables
     if not vars:
         vars = list(fvcom.data)
@@ -2033,6 +2110,12 @@ class FileReaderFromDict(FileReader):
             elif obj in ('time', 'Itime', 'Itime2', 'datetime'):
                 self.dims.time = getattr(self.time, obj).shape
 
+class TimelessFileReader(FileReader):
+    def _load_time(self):
+        self.time = PassiveStore()
+        self.time._dims = [] 
+        self.time.time = 1
+
 
 class SubDomainReader(FileReader):
     """
@@ -2183,7 +2266,7 @@ class SubDomainReader(FileReader):
 
         """
         nml_dict = get_river_config(river_nml_file)
-        river_node_raw = np.asarray(nml_dict['RIVER_GRID_LOCATION'], dtype=int) - 1
+        river_node_raw = np.asarray(nml_dict['RIVER_GRID_LOCATION'], dtype=int)
 
         # Get only rivers which feature in the subdomain
         rivers_in_grid = np.isin(river_node_raw, self._dims['node'])
