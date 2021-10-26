@@ -37,7 +37,7 @@ have_basemap = True
 try:
     from mpl_toolkits.basemap import Basemap
 except ImportError:
-    warn('No mpl_toolkits found in this python installation. Some functions will be disabled.')
+    warn('No mpl_toolkits.basemap (deprecated) found in this python installation. Disable basemap.')
     Basemap = None
     have_basemap = False
 
