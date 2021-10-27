@@ -38,6 +38,31 @@ We are targeting Python 3.6+. PyFVCOM no longer supports Python 2.
 
 We recommend Jupyter (formerly iPython) for interactive use of PyFVCOM (and python generally).
 
+**Installation on Windows 10 recommended by jsasaki**
+
+First [Microsoft MPI](https://www.microsoft.com/en-us/download/details.aspx?id=100593) should be installed using `msmpisdk.msi` and `msmpisetup.exe`. If some error appears during installation related to unable to upgrade MPI, Microsoft HPC Pack may have been installed. If so, this should be uninstalled before installing Microsoft MPI. A package of `mpl_toolkits.basemap` is deprecated and ignored.
+
+```bash
+conda update conda
+conda create -n pyfvcom
+conda activate pyfvcom
+conda install pip
+conda install numpy
+conda install scipy
+conda install shapely
+conda install cartopy
+conda install cmocean
+conda install mpi4py
+conda install jupyterlab
+conda install matplotlib
+
+git clone https://github.com/jsasaki-utokyo/pyfvcom.git
+cd pyfvcom
+pip install -e .
+```
+
+Edited PyFVCOM python codes will be immediately reflected.
+
 Examples
 --------
 
