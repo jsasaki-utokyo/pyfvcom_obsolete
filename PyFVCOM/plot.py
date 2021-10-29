@@ -148,11 +148,11 @@ class Depth(object):
         # inevitably does something you don't expect.
         try:
             self.slice_plot = self.axes.pcolormesh(horizontal, -depth, variable,
-                                                   cmap=self.cmap, *args, **kwargs)
+                                                   cmap=self.cmap, shading='auto', *args, **kwargs)
         except TypeError:
             # Try flipping the data array, that might make it work.
             self.slice_plot = self.axes.pcolormesh(horizontal, -depth, variable.T,
-                                                   cmap=self.cmap, *args, **kwargs)
+                                                   cmap=self.cmap, shading='auto', *args, **kwargs)
 
         if fill_seabed:
             self.axes.fill_between(horizontal, self.axes.get_ylim()[0], -np.max(depth, axis=0), color='0.6')
@@ -466,10 +466,16 @@ class Plotter(object):
 
     """
 
-    def __init__(self, dataset, figure=None, axes=None, stations=None, extents=None, vmin=None, vmax=None, mask=None,
-                 res='c', fs=10, title=None, cmap='viridis', figsize=(10., 10.), axis_position=None, tick_inc=None, bg_color='gray',
-                 cb_label=None, extend='neither', norm=None, m=None, cartesian=False, axis_labels = True,
-                 line_width=None, mapper='basemap', coast=True, **bmargs):
+    def __init__(self, dataset, figure=None, axes=None, stations=None, extents=None, \
+                 vmin=None, vmax=None, mask=None,res='c', fs=10, title=None, cmap=cm.balance,\
+                 figsize=(10., 10.), axis_position=None, tick_inc=None, bg_color='gray', \
+                 cb_label=None, extend='neither', norm=None, m=None, cartesian=False, axis_labels=True, \
+                 line_width=None, mapper='cartopy', coast=True, **bmargs):
+    #def __init__(self, dataset, figure=None, axes=None, stations=None, extents=None, vmin=None, vmax=None, mask=None,\
+    #             res='c', fs=10, title=None, cmap='viridis', figsize=(10., 10.), axis_position=None, tick_inc=None, \
+    #             bg_color='gray', \
+    #             cb_label=None, extend='neither', norm=None, m=None, cartesian=False, axis_labels = True,\
+    #             line_width=None, mapper='cartopy', coast=True, **bmargs):
         """
         Parameters
         ----------
@@ -606,10 +612,14 @@ class Plotter(object):
         gl.xlabel_style = {'fontsize': self.fs}
         gl.ylabel_style = {'fontsize': self.fs}
 
-        gl.xlabels_top=False
-        gl.ylabels_right=False
-        gl.xlabels_bottom=True
-        gl.ylabels_left=True
+        gl.top_labels=False
+        gl.right_labels=False
+        gl.bottom_labels=True
+        gl.left_labels=True
+        #gl.xlabels_top=False
+        #gl.ylabels_right=False
+        #gl.xlabels_bottom=True
+        #gl.ylabels_left=True
 
         gl.xformatter = LONGITUDE_FORMATTER
         gl.yformatter = LATITUDE_FORMATTER
@@ -702,7 +712,7 @@ class Plotter(object):
                 # Make a coastline depending on whether we've got a GSHHS resolution or a Natural Earth one.
                 if self.res in ('c', 'l', 'i', 'h', 'f'):
                     # Use the GSHHS data as in Basemap (a lot slower than the cartopy data).
-                    land = cfeature.GSHHSFeature(scale=self.res, edgecolor='k', facecolor=0.6)
+                    land = cfeature.GSHHSFeature(scale=self.res, edgecolor='k', facecolor='0.6')
                 else:
                     # Make a land object which is fairly similar to the Basemap on we use.
                     land = cfeature.NaturalEarthFeature('physical', 'land', self.res, edgecolor='k', facecolor='0.6')
@@ -731,8 +741,8 @@ class Plotter(object):
                 self.axes.background_patch.set_facecolor(self.bg_color)
             else:
                 self.axes.set_facecolor(self.bg_color)
-            self.figure.show()
-            self.figure.canvas.draw()
+            #self.figure.show()
+            #self.figure.canvas.draw()
         elif self.mapper == 'basemap' and not self.cartesian and self.coast:
             self.m.drawmapboundary()
             #self.m.drawcoastlines(zorder=1000)
@@ -917,9 +927,9 @@ class Plotter(object):
         linewidth = kwargs.pop('linewidth', None)
         alpha = kwargs.pop('alpha', 1.0)
         if mesh:
-            mesh_plot = self.axes.triplot(self.mx, self.my,
-                                                        self.triangles, 'k-',
-                                                        linewidth=linewidth, zorder=2000, alpha=alpha, **self._plot_projection, **kwargs)
+            mesh_plot = self.axes.triplot(self.mx, self.my, self.triangles, 'k-', \
+                                          linewidth=linewidth, zorder=2000, alpha=alpha, \
+                                          **self._plot_projection, **kwargs)
             self.mesh_plot = mesh_plot
 
         if depth:
@@ -945,11 +955,19 @@ class Plotter(object):
         # We ignore the mask given when initialising the Plotter object and instead use the one given when calling
         # this function. We'll warn in case anything (understandably) gets confused.
 
+        # jsasaki
         cmap = kwargs.pop('cmap', None)
+        if cmap is None:
+            cmap = self.cmap
         cb_label = kwargs.pop('cb_label', None)
         var_field = kwargs.pop('variable_name', None)
+        #var_field = kwargs.pop(variable_name, None)
+        # jsasaki
+        #print(var_field) #None
         if var_field:
-            cmap = colourmap('h')
+            #print(var_field)
+            cmap = colourmap(var_field)
+            #cmap = colourmap('h')
 
         if self.mask is not None:
             warn("The mask given when initiliasing this object is ignored for plotting surfaces. Supply a `mask' "
@@ -1880,6 +1898,8 @@ class MPIWorker(object):
             Set to True to enabled some verbose output messages. Defaults to False (no messages).
 
         """
+        # jsasaki
+        # print('In class MPIWorker')
         self.dims = None
 
         self.have_mpi = True

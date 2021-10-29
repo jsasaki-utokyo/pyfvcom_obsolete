@@ -250,8 +250,11 @@ class _TimeReader(object):
                         self._dims['time'] = np.arange(*[self._time_to_index(i) for i in self._dims['time']])
                     except TypeError:
                         self._dims['time'] = np.arange(*[self._time_to_index(self._dims['time'])])  # make iterable
+
                 for time in self:
-                    setattr(self, time, getattr(self, time)[self._dims['time']])
+                    # jsasaki bug fixed
+                    # setattr(self, time, getattr(self, time)[self._dims['time']])
+                    setattr(self, time, getattr(self, time))
 
         dataset.close()
 
@@ -437,7 +440,7 @@ class FileReader(Domain):
 
     """
 
-    def __init__(self, fvcom, variables=[], dims={}, zone='30N', debug=False, verbose=False, subset_method='slice'):
+    def __init__(self, fvcom, variables=[], dims={}, zone=54, debug=False, verbose=False, subset_method='slice'):
         """
         Parameters
         ----------
@@ -1801,12 +1804,12 @@ class FileReader(Domain):
         if variable in list(self.grid):
             base_attribute = self.grid
 
-        if variable is 'volume':
+        if variable == 'volume':
             if not hasattr(self.grid, 'depth_volume'):
                 self.grid_volume()
             # We'll always use depth_volume since it's vertically resolved but just grab the given layer now.
             data = self.grid.depth_volume[layer, :]
-        elif variable is 'area':
+        elif variable == 'area':
             if not hasattr(self.grid, 'art1'):
                 self.grid.art1 = np.asarray(control_volumes(self.grid.x, self.grid.y, self.grid.triangles,
                                                             element_control=False, poolsize=None))
