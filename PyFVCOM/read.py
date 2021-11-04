@@ -118,12 +118,16 @@ class _TimeReader(object):
             if 'Times' not in got_time:
                 if 'time' in got_time:
                     time_units = getattr(dataset.variables['time'], 'units')
+                    # jsasaki 30/10/2021
+                    # time_units.split() -> ['days', 'since', '0.0'] when _using_calendar_time = False
                     if time_units.split()[-1] == '0.0':
                         self._using_calendar_time = False
                     if self._using_calendar_time:
                         _dates = num2date(self.time, units=time_units)
                     else:
-                        _dates = [None] * len(self.time)
+                        # jsasaki 30/10/2021 : Handling non-calendar time 
+                        #_dates = [None] * len(self.time)
+                        _dates = self.time
                 elif 'Itime' in got_time and 'Itime2' in got_time:
                     itime_units = getattr(dataset.variables['Itime'], 'units')
                     _dates = num2date(self.Itime + self.Itime2 / 1000.0 / 60 / 60 / 24, units=itime_units)
@@ -240,6 +244,10 @@ class _TimeReader(object):
 
             # Clip everything to the time indices if we've been given them. Update the time dimension too.
             if 'time' in self._dims:
+                # jsasaki : Code reading
+                # isinstance(object, classinfo): whether object is classinfo type
+                # print(isinstance(self._dims['time'], slice))
+                # print(self._dims['time'])
                 is_datetimes_or_str = False
                 if not isinstance(self._dims['time'], slice):
                     is_datetimes_or_str = all([isinstance(i, (datetime, str)) for i in self._dims['time']])
@@ -251,10 +259,18 @@ class _TimeReader(object):
                     except TypeError:
                         self._dims['time'] = np.arange(*[self._time_to_index(self._dims['time'])])  # make iterable
 
+                # jsasaki : Code reading
+                # Slicing implemented: self._dims['time'] is slice object 
+                # if isinstance(self._dims['time'], slice) and not self._using_calendar_time:
+                #    print(self.time)
+                #    self.time=self.time[self._dims['time']]
+                #    self.datetime = self.datetime[self._dims['time']]
+                #    print(self.datetime)
+
+                # jsasaki : Slicing with time slice implemented
                 for time in self:
-                    # jsasaki bug fixed
-                    # setattr(self, time, getattr(self, time)[self._dims['time']])
-                    setattr(self, time, getattr(self, time))
+                    # print(getattr(self, time))
+                    setattr(self, time, getattr(self, time)[self._dims['time']])
 
         dataset.close()
 

@@ -126,7 +126,7 @@ class Depth(object):
         if self.title:
             self.axes.set_title(self.title)
 
-    def plot_slice(self, horizontal, depth, variable, fill_seabed=False, *args, **kwargs):
+    def plot_slice(self, horizontal, depth, variable, fill_seabed=False, shading='auto', *args, **kwargs):
         """
 
         Parameters
@@ -148,11 +148,11 @@ class Depth(object):
         # inevitably does something you don't expect.
         try:
             self.slice_plot = self.axes.pcolormesh(horizontal, -depth, variable,
-                                                   cmap=self.cmap, shading='auto', *args, **kwargs)
+                                                   cmap=self.cmap, shading=shading, *args, **kwargs)
         except TypeError:
             # Try flipping the data array, that might make it work.
             self.slice_plot = self.axes.pcolormesh(horizontal, -depth, variable.T,
-                                                   cmap=self.cmap, shading='auto', *args, **kwargs)
+                                                   cmap=self.cmap, shading=shading, *args, **kwargs)
 
         if fill_seabed:
             self.axes.fill_between(horizontal, self.axes.get_ylim()[0], -np.max(depth, axis=0), color='0.6')
@@ -181,8 +181,9 @@ class Time(object):
 
     """
 
-    def __init__(self, dataset, figure=None, figsize=(20, 8), axes=None, cmap='viridis', title=None, legend=False,
-                 fs=10, date_format=None, cb_label=None, hold=False, extend='neither'):
+    def __init__(self, dataset, figure=None, figsize=(20, 8), axes=None,
+                 cmap='viridis', title=None, legend=False, fs=10,
+                 date_format=None, cb_label=None, hold=False, extend='neither'):
         """
         Parameters
         ----------
@@ -251,6 +252,8 @@ class Time(object):
         # Read in required grid variables
         if self._FileReader:
             self.time = self.ds.time.datetime
+            # jsasaki
+            # print(self.ds.time.datetime)
         else:
             # Try a couple of time formats.
             try:
@@ -290,6 +293,8 @@ class Time(object):
             self.line_plot.set_xdata = self.time
             return
 
+        #print("time")
+        #print(self.time)
         self.line_plot, = self.axes.plot(self.time, time_series,
                                          *args, **kwargs)
 
@@ -400,7 +405,7 @@ class Time(object):
         # Turn off the y-axis labels as they don't correspond to the vector lengths.
         self.axes.get_yaxis().set_visible(False)
 
-    def plot_surface(self, depth, time_series, fill_seabed=False, **kwargs):
+    def plot_surface(self, depth, time_series, fill_seabed=False, h_offset=0, h_min=None, **kwargs):
         """
         Parameters
         ----------
@@ -410,6 +415,11 @@ class Time(object):
             Depth-varying array of data to plot.
         fill_seabed : bool, optional
             Set to True to fill the seabed from the maximum water depth to the edge of the plot with gray.
+        h_offset : scalar, optional
+            Set offset below the bed
+        h_min : scalar or fvcom.grid.h (sliced at a node), optional
+            Set the depth of bed in positive, default: the depth of bottom layer's cell center
+            (depth of bed is not included in this Class)
 
         Remaining kwargs are passed to self.axes.pcolormesh.
 
@@ -420,14 +430,37 @@ class Time(object):
         time_series = np.squeeze(time_series)
 
         if not self.surface_plot:
-            self.surface_plot = self.axes.pcolormesh(np.tile(self.time, [depth.shape[-1], 1]).T,
-                                                     depth,
-                                                     time_series,
-                                                     cmap=self.cmap,
+            # jsasaki
+            #print("self.time.shape")
+            #print(self.time.shape)
+            #print("depth.shape")
+            #print(depth.shape)
+            #print("[depth.shape[-1],1]")
+            #print([depth.shape[-1], 1])
+            #print("time_series.shape")
+            #print(time_series.shape)
+            #print("np.tile", np.tile(self.time, (depth.shape[-1], 1)).shape)
+            self.surface_plot = self.axes.pcolormesh(np.tile(self.time, (depth.shape[-1], 1)),
+                                                     depth.T, time_series.T,
+                                                     cmap=self.cmap, shading='auto',
                                                      **kwargs)
 
-            if fill_seabed:
-                self.axes.fill_between(self.time, np.min(depth, axis=1), self.axes.get_ylim()[0], color='0.6')
+            # jsasaki 2021/11/02: Set offset for y_min with h_offset
+            self.axes.set_ylim(self.axes.get_ylim()[0] - h_offset, self.axes.get_ylim()[1])
+            # jsasaki 2021/11/02: h_min is the bed depth, which cannot be extracted in this class;
+            #                     thus, gets from argument of h_min.
+            #                     if h_min is None, gets from the cell center of the bottom layer,
+            #                     which is located slightly above the bed. 
+            if h_min is None:
+                h_min = np.min(depth.T, axis=0)
+            else:
+                h_min = -h_min
+            
+            # jsasaki 2021/11/02: Axes x_lim should be used in fill_between().
+            #                     The rage of self.time does not cover axes x_lim.
+            #self.axes.fill_between(self.time, h_min, 
+            self.axes.fill_between(self.axes.get_xlim(), h_min, 
+                                   self.axes.get_ylim()[0], color='0.6')
             divider = make_axes_locatable(self.axes)
 
             cax = divider.append_axes("right", size="3%", pad=0.1)
