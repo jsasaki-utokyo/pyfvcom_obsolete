@@ -4702,7 +4702,7 @@ class WriteForcing(object):
         attributes : dict, optional
             Attributes to add to the netCDF variable object.
         format : str, optional
-            Data format for the new variable. Defaults to 'f4' (float32).
+            Data format for the new variable. Defaults to 'f4':
         ncopts : dict
             Dictionary of options to use when creating the netCDF variables.
 
@@ -4729,16 +4729,22 @@ class WriteForcing(object):
         """
 
         mjd = date2num(time, units='days since 1858-11-17 00:00:00')
+        #print(mjd)
         Itime = np.floor(mjd)  # integer Modified Julian Days
         Itime2 = (mjd - Itime) * 24 * 60 * 60 * 1000  # milliseconds since midnight
-        Times = [t.strftime('%Y-%m-%dT%H:%M:%S.%f') for t in time]
+        #print([t for t in time])
+        
+        # jsasaki 2021/12/09: The format of %f does not work.
+        #         The str length is only 23, inconsistent with DateStrLen=26; thus deactivated.
+        # Times = [t.strftime('%Y-%m-%dT%H:%M:%S.%f') for t in time]
+        # Times = [t.strftime() for t in time]
 
         # time
         atts = {'units': 'days since 1858-11-17 00:00:00',
                 'format': 'modified julian day (MJD)',
                 'long_name': 'time',
                 'time_zone': 'UTC'}
-        self.add_variable('time', mjd, ['time'], attributes=atts, **kwargs)
+        self.add_variable('time', mjd, ['time'], attributes=atts, format='f8', **kwargs)
         # Itime
         atts = {'units': 'days since 1858-11-17 00:00:00',
                 'format': 'modified julian day (MJD)',
@@ -4748,8 +4754,10 @@ class WriteForcing(object):
         atts = {'units': 'msec since 00:00:00', 'time_zone': 'UTC'}
         self.add_variable('Itime2', Itime2, ['time'], attributes=atts, format='i', **kwargs)
         # Times
-        atts = {'long_name': 'Calendar Date', 'format': 'String: Calendar Time', 'time_zone': 'UTC'}
-        self.add_variable('Times', Times, ['time', 'DateStrLen'], format='c', attributes=atts, **kwargs)
+        # jsasaki 2021/12/09: Deactivate Times
+        #       . DateStrLen=26 while that of "2021-12-09T00:00:00.000" is 23, which raises error.
+        # atts = {'long_name': 'Calendar Date', 'format': 'String: Calendar Time', 'time_zone': 'UTC'}
+        # self.add_variable('Times', Times, ['time', 'DateStrLen'], format='c', attributes=atts, **kwargs)
 
     def __enter__(self):
         return self
