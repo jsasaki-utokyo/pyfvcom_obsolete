@@ -68,7 +68,11 @@ To work with [HoloViews](https://holoviews.org/index.html) and [GeoViews](https:
 ```bash
 conda install -c pyviz holoviews bokeh
 conda install -c pyviz geoviews
+conda install selenium
+conda install -c conda-forge firefox geckodriver
 ```
+
+To create a PNG animation, install [APNG Assembler](http://apngasm.sourceforge.net/). In the case of Windows, download apngasm-2.91-bin-win64.zip from [here](https://sourceforge.net/projects/apngasm/files/2.91/); put the executable of **apngasm64.exe** in a foloder with PATH.
 
 Examples
 --------
