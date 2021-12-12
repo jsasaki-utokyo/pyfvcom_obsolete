@@ -38,7 +38,7 @@ We are targeting Python 3.6+. PyFVCOM no longer supports Python 2.
 
 We recommend Jupyter (formerly iPython) for interactive use of PyFVCOM (and python generally).
 
-**Installation on Windows 10 recommended by jsasaki**
+**Installation on Windows 10 by jsasaki**
 
 First [Microsoft MPI](https://www.microsoft.com/en-us/download/details.aspx?id=100593) should be installed using `msmpisdk.msi` and `msmpisetup.exe`. If some error appears during installation related to unable to upgrade MPI, Microsoft HPC Pack may have been installed. If so, this should be uninstalled before installing Microsoft MPI. A package of `mpl_toolkits.basemap` is deprecated and ignored.
 
@@ -62,6 +62,13 @@ pip install -e .
 ```
 
 Edited PyFVCOM python codes will be immediately reflected.
+
+To work with [HoloViews](https://holoviews.org/index.html), [install it](https://holoviews.org/index.html#installation):
+
+```bash
+conda install -c pyviz holoviews bokeh
+
+```
 
 Examples
 --------
