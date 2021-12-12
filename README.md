@@ -67,7 +67,7 @@ To work with [HoloViews](https://holoviews.org/index.html) and [GeoViews](https:
 
 ```bash
 conda install -c pyviz holoviews bokeh
-
+conda install -c pyviz geoviews
 ```
 
 Examples
