@@ -63,7 +63,7 @@ pip install -e .
 
 Edited PyFVCOM python codes will be immediately reflected.
 
-To work with [HoloViews](https://holoviews.org/index.html), [install it](https://holoviews.org/index.html#installation):
+To work with [HoloViews](https://holoviews.org/index.html) and [GeoViews](https://geoviews.org/), [install HoloViews](https://holoviews.org/index.html#installation) and [install GeoViews](https://geoviews.org/#installation):
 
 ```bash
 conda install -c pyviz holoviews bokeh
