@@ -4720,11 +4720,11 @@ class WriteForcing(object):
     def write_fvcom_time(self, time, **kwargs):
         """
         Write the four standard FVCOM time variables (time, Times, Itime, Itime2) for the given time series.
+        FVCOM reads Times with the highest priority when available.
 
         Parameters
         ----------
-        time : np.ndarray, list, tuple
-            Times as datetime objects.
+        time (list): List of datetime.datetime objects
 
         """
 
@@ -4732,12 +4732,7 @@ class WriteForcing(object):
         #print(mjd)
         Itime = np.floor(mjd)  # integer Modified Julian Days
         Itime2 = (mjd - Itime) * 24 * 60 * 60 * 1000  # milliseconds since midnight
-        #print([t for t in time])
-        
-        # jsasaki 2021/12/09: The format of %f does not work.
-        #         The str length is only 23, inconsistent with DateStrLen=26; thus deactivated.
-        # Times = [t.strftime('%Y-%m-%dT%H:%M:%S.%f') for t in time]
-        # Times = [t.strftime() for t in time]
+        Times = [t.strftime('%Y-%m-%dT%H:%M:%S.%f') for t in time]
 
         # time
         atts = {'units': 'days since 1858-11-17 00:00:00',
@@ -4754,10 +4749,9 @@ class WriteForcing(object):
         atts = {'units': 'msec since 00:00:00', 'time_zone': 'UTC'}
         self.add_variable('Itime2', Itime2, ['time'], attributes=atts, format='i', **kwargs)
         # Times
-        # jsasaki 2021/12/09: Deactivate Times
-        #       . DateStrLen=26 while that of "2021-12-09T00:00:00.000" is 23, which raises error.
-        # atts = {'long_name': 'Calendar Date', 'format': 'String: Calendar Time', 'time_zone': 'UTC'}
-        # self.add_variable('Times', Times, ['time', 'DateStrLen'], format='c', attributes=atts, **kwargs)
+        atts = {'long_name': 'Calendar Date', 'format': 'String: Calendar Time', 'time_zone': 'UTC'}
+        self.add_variable('Times', Times, ['time', 'DateStrLen'], format='c', attributes=atts, **kwargs)
+        #self.add_variable('Times', Times, ['time'], format='c', attributes=atts, **kwargs)
 
     def __enter__(self):
         return self
