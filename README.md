@@ -37,7 +37,7 @@ We are targeting Python 3.6+. PyFVCOM no longer supports Python 2.
 
 We recommend Jupyter (formerly iPython) for interactive use of PyFVCOM (and python generally).
 
-**Installation on Windows 10 by jsasaki**
+## Installation on Windows 10 by jsasaki
 
 First [Microsoft MPI](https://www.microsoft.com/en-us/download/details.aspx?id=100593) should be installed using `msmpisdk.msi` and `msmpisetup.exe`. If some error appears during installation related to unable to upgrade MPI, Microsoft HPC Pack may have been installed. If so, this should be uninstalled before installing Microsoft MPI. A package of `mpl_toolkits.basemap` is deprecated and ignored.
 
@@ -73,6 +73,69 @@ conda install -c conda-forge firefox geckodriver
 
 To create a PNG animation, install [APNG Assembler](http://apngasm.sourceforge.net/). In the case of Windows, download apngasm-2.91-bin-win64.zip from [here](https://sourceforge.net/projects/apngasm/files/2.91/); put the executable of **apngasm64.exe** in a foloder with PATH.
 
+
+## Installation on Ubuntu20.04LTS on WSL2 on Windows 10 by jsasaki
+
+**conda-forge** should be the highest priority.
+
+
+``bash
+conda update conda
+conda create -n pyfvcom
+conda activate pyfvcom
+
+conda install pip
+conda install numpy
+conda install scipy
+conda install shapely
+conda install cartopy
+conda install cmocean
+# mpi4py is optional; if kernel dies, uninstall mpi4py.
+conda install mpi4py
+conda install jupyterlab
+
+git clone https://github.com/jsasaki-utokyo/pyfvcom.git
+cd pyfvcom
+pip install -e .
+```
+
+## Installation on Supercomputer ITO at Kyushu University by jsasaki
+
+- **conda-forge** should be the highest priority.
+- An interactive work using Jupyter Lab on [Frontend](https://www.cc.kyushu-u.ac.jp/scp/eng/system/ITO/frontend/) is possible from a web browser of a client PC (e.g., Chrome on Windows). Normal Frontend's virtual host of VSI (9 cores) is recommended.
+- ITO[フロントエンド](https://www.cc.kyushu-u.ac.jp/scp/system/ITO/frontend/)において，[ポート転送](https://www.cc.kyushu-u.ac.jp/scp/support/faq/faq008.html)を利用し，クライアントPCのWebブラウザ（WindowsのChrome等）から Jupyter Lab に接続できる（URLの方法2がお勧め）．Frontendは基本フロントエンドの仮想マシンのVSI（9 cores）がお勧め．
+
+
+```bash
+conda create -n pyfvcom
+conda activate pyfvcom
+
+conda install pip
+# in my case I had to manually install the requirements in conda before using pip to install PyFVCOM
+conda install numpy
+conda install scipy
+conda install shapely
+conda install cartopy
+conda install cmocean
+conda install jupyterlab
+
+git clone https://github.com/jsasaki-utokyo/pyfvcom.git
+cd pyfvcom
+pip install -e .
+```
+
+The following warnings will appear. Regarding MPI, I found `conda install mpi4py` lead to `kernel died` or `segmentation fault` on ITO. Thus, MPI should be disabled.
+
+```bash
+No MPI some functions will be disabled (/home/****/******/Github/pyfvcom/PyFVCOM/tide.py:41)
+No mpl_toolkits.basemap (deprecated) found in this python installation. Disable basemap. (/home/****/******/Github/pyfvcom/PyFVCOM/plot.py:40)
+
+```
+
+
+Edited PyFVCOM python codes will be immediately reflected.
+
+
 # Examples
 
 The examples directory includes some Jupyter notebooks of some brief examples of how to use PyFVCOM. There are also sample scripts of those notebooks.
@@ -106,7 +169,7 @@ The examples directory includes some Jupyter notebooks of some brief examples of
     - `get_buoy_metadata`
     - `get_buoy_data`
 
-* `coordinate` - convert from spherical and cartesian (UTM) coordinates. Also work with British National Grid coordinates and spherical.
+* `coordinate` - convert from spherical and Cartesian (UTM) coordinates. Also work with British National Grid coordinates and spherical.
     - `utm_from_lonlat`
     - `lonlat_from_utm`
     - `british_national_grid_to_lonlat`
