@@ -1,8 +1,7 @@
-Welcome to PyFVCOM!
---------------------
+# Welcome to PyFVCOM!
 
-Table of contents
------------------
+
+## Table of contents
 
 - [Introduction](#introduction)
 - [Installing](#installing)
@@ -10,8 +9,8 @@ Table of contents
 - [Provides](#provides)
 - [Coding conventions](#coding-conventions)
 
-Introduction
-------------
+# Introduction
+
 
 PyFVCOM is a collection of various tools and utilities which can be used to extract, analyse and plot input and output files from FVCOM as well as generate model inputs.
 
@@ -19,8 +18,8 @@ If you wish to cite PyFVCOM, please use the following:
 
 Cazenave, P. W. et al. (2018). PyFVCOM (version x.x.x) [software]. Plymouth, Devon, United Kingdom: Plymouth Marine Laboratory. https://doi.org/10.5281/zenodo.1422462
 
-Installing
-----------
+# Installing
+
 
 Easiest way is to install with pip/pip3:
 
@@ -74,8 +73,7 @@ conda install -c conda-forge firefox geckodriver
 
 To create a PNG animation, install [APNG Assembler](http://apngasm.sourceforge.net/). In the case of Windows, download apngasm-2.91-bin-win64.zip from [here](https://sourceforge.net/projects/apngasm/files/2.91/); put the executable of **apngasm64.exe** in a foloder with PATH.
 
-Examples
---------
+# Examples
 
 The examples directory includes some Jupyter notebooks of some brief examples of how to use PyFVCOM. There are also sample scripts of those notebooks.
 
@@ -100,8 +98,8 @@ The examples directory includes some Jupyter notebooks of some brief examples of
 #### Miscellaneous tools
 - Make an array of datetime objects: `times = PyFVCOM.utilities.time.date_range(start, end, inc=0.5)`
 
-Provides
---------
+# Provides
+
 
 * `buoy` - read data from an SQLite3 database of BODC buoy data.
     - `Buoy` - class to hold a range of time series data from buoys.
@@ -464,8 +462,7 @@ Provides
     - `CompareICES`
     - `CompareICES.get_var_comp`
 
-Coding conventions
-------------------
+# Coding conventions
 
 - Use 4 spaces per indentation level
 - Never mix tabs and spaces
