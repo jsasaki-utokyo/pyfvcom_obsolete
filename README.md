@@ -76,10 +76,10 @@ To create a PNG animation, install [APNG Assembler](http://apngasm.sourceforge.n
 
 ## Installation on Ubuntu20.04LTS on WSL2 on Windows 10 by jsasaki
 
-**conda-forge** should be the highest priority.
+- **conda-forge** should be the highest priority.
 
 
-``bash
+```bash
 conda update conda
 conda create -n pyfvcom
 conda activate pyfvcom
