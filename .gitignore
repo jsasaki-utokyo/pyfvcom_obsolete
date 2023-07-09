@@ -13,3 +13,5 @@ build
 dist
 MANIFEST
 PyFVCOM.egg-info
+examples/.ipynb_checkpoints
+examples/png/
